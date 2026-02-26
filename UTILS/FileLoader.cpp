@@ -27,7 +27,6 @@ vector<Question> FileLoader::loadQuestions(const string& filePath)
         // SKIP EMPTY LINES THAT ACT AS SEPARATORS BETWEEN QUESTION BLOCKS
         if (line.empty())
             continue;
-        
 
         // IF THE LINE IS NOT EMPTY, IT MUST BE THE START OF A NEW QUESTION.
         // STORE THE QUESTION TEXT.
@@ -43,7 +42,6 @@ vector<Question> FileLoader::loadQuestions(const string& filePath)
 
         // READ THE ANSWER LINE (E.G., "ANSWER: A")
         char correctAnswer = 'A'; // DEFAULT FALLBACK IN CASE OF PARSING ERROR
-        
         if (getline(file, line))
         {
             // EXTRACT THE VERY LAST CHARACTER OF THE LINE (WHICH SHOULD BE A, B, C, OR D)
@@ -58,4 +56,22 @@ vector<Question> FileLoader::loadQuestions(const string& filePath)
 
     file.close();
     return questions;
+}
+
+// SAVE SCORE IMPLEMENTATION
+// LOGIC: USES STD::OFSTREAM IN APPEND MODE TO ADD A NEW RECORD TO THE FILE
+void FileLoader::saveScore(const string& playerName, int score, int attempted)
+{
+    // OPEN THE FILE IN APPEND MODE
+    ofstream file("DATA/HighScores.txt", ios::app);
+
+    if (file.is_open())
+    {
+        file << "PLAYER: " << playerName << " | SCORE: " << score << "/" << attempted << "\n";
+        file.close();
+        cout << "HIGH SCORE SAVED SUCCESSFULLY TO DATA/HighScores.txt!\n";
+    }
+
+    else
+        cerr << "ERROR: COULD NOT OPEN HIGH SCORES FILE FOR WRITING.\n";
 }
