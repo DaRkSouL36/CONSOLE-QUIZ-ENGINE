@@ -5,37 +5,38 @@
 using namespace std;
 
 // CONSTRUCTOR IMPLEMENTATION
-// LOGIC: INITIALIZES THE INTERNAL QUESTION LIST AND SETS THE STARTING SCORE TO 0
+// LOGIC: INITIALIZES THE INTERNAL QUESTION LIST, SCORE, AND ATTEMPTS TO 0
 QuizManager::QuizManager(const vector<Question>& loadedQuestions)
 {
     questions = loadedQuestions;
     score = 0;
+    questionsAttempted = 0;
 }
 
 // GET USER INPUT IMPLEMENTATION
-// LOGIC: INFINITE LOOP THAT ONLY BREAKS WHEN A VALID CHARACTER IS ENTERED
+// LOGIC: INFINITE LOOP THAT BREAKS WHEN A VALID CHARACTER (A, B, C, D, OR X) IS ENTERED
 char QuizManager::getUserInput()
 {
     char input;
     while (true)
     {
-        cout << "\nENTER YOUR ANSWER (A/B/C/D): ";
+        cout << "\nENTER YOUR ANSWER (A/B/C/D) OR 'X' TO EXIT: ";
         cin >> input;
         
         // CONVERT TO UPPERCASE IMMEDIATELY FOR EASIER COMPARISON
         input = toupper(input);
 
-        // CHECK IF THE INPUT IS ONE OF THE ALLOWED OPTIONS
-        if (input == 'A' || input == 'B' || input == 'C' || input == 'D')
+        // CHECK IF THE INPUT IS ONE OF THE ALLOWED OPTIONS OR THE EXIT COMMAND
+        if (input == 'A' || input == 'B' || input == 'C' || input == 'D' || input == 'X')
             return input;
         
-        else
-            cout << "INVALID INPUT. PLEASE ENTER EXACTLY A, B, C, OR D.\n";
+        else 
+            cout << "INVALID INPUT. PLEASE ENTER EXACTLY A, B, C, D, OR X.\n";
     }
 }
 
 // START METHOD IMPLEMENTATION
-// LOGIC: CHECKS IF QUESTIONS EXIST, THEN LOOPS THROUGH EACH ONE USING PRE-INCREMENT
+// LOGIC: LOOPS THROUGH QUESTIONS, CHECKS FOR EARLY EXIT ('X'), AND TRACKS ATTEMPTS
 void QuizManager::start()
 {
     // SAFETY CHECK: DO NOT START IF NO QUESTIONS WERE LOADED
@@ -57,42 +58,63 @@ void QuizManager::start()
 
         char answer = getUserInput();
 
+        // CHECK FOR EARLY EXIT COMMAND
+        if (answer == 'X')
+        {
+            cout << "\nEXITING QUIZ EARLY... CALCULATING RESULTS FOR ATTEMPTED QUESTIONS.\n";
+            break; // BREAKS OUT OF THE FOR LOOP
+        }
+
+        // IF NOT EXITING, INCREMENT THE ATTEMPT COUNTER
+        ++questionsAttempted;
+
         // EVALUATE THE ANSWER
         if (questions[i].isCorrect(answer))
         {
             cout << "CORRECT!\n";
-            ++score; // USING PRE-INCREMENT FOR THE SCORE AS WELL
+            ++score; 
         }
 
         else
             cout << "WRONG! THE CORRECT ANSWER WAS: " << questions[i].getCorrectAnswer() << "\n";
     }
 
-    // ONCE THE LOOP FINISHES, SHOW THE FINAL RESULTS
+    // ONCE THE LOOP FINISHES OR BREAKS, SHOW THE FINAL RESULTS
     displayResults();
 }
 
 // DISPLAY RESULTS IMPLEMENTATION
-// LOGIC: CALCULATES THE PERCENTAGE AND DETERMINES IF THE USER PASSED (>= 50%)
+// LOGIC: DISPLAYS STATS BASED ON ATTEMPTED QUESTIONS. PREVENTS DIVISION BY ZERO.
 void QuizManager::displayResults() const
 {
     cout << "\n================================\n";
     cout << "         QUIZ FINISHED!         \n";
     cout << "================================\n";
     
-    cout << "TOTAL QUESTIONS: " << questions.size() << "\n";
-    cout << "CORRECT ANSWERS: " << score << "\n";
+    cout << "TOTAL QUESTIONS AVAILABLE: " << questions.size() << "\n";
+    cout << "QUESTIONS ATTEMPTED:       " << questionsAttempted << "\n";
+    cout << "CORRECT ANSWERS:           " << score << "\n";
 
-    // CALCULATE PERCENTAGE (CAST TO DOUBLE TO AVOID INTEGER DIVISION TRUNCATION)
-    double percentage = (static_cast<double>(score) / questions.size()) * 100;
-    cout << "PERCENTAGE:      " << percentage << "%\n";
+    // PREVENT DIVIDE-BY-ZERO IF THE USER EXITS ON THE VERY FIRST QUESTION
+    if (questionsAttempted > 0)
+    {
+        // CALCULATE PERCENTAGE BASED ON ATTEMPTED QUESTIONS ONLY
+        double percentage = (static_cast<double>(score) / questionsAttempted) * 100;
+        cout << "PERCENTAGE:                " << percentage << "%\n";
 
-    // PASS/FAIL THRESHOLD
-    if (percentage >= 50.0)
-        cout << "RESULT:          PASS! GREAT JOB!\n";
+        // PASS/FAIL THRESHOLD
+        if (percentage >= 50.0)
+            cout << "RESULT:                    PASS! GREAT JOB!\n";
+        
+        else
+            cout << "RESULT:                    FAIL. BETTER LUCK NEXT TIME.\n";
+        
+    }
     
     else
-        cout << "RESULT:          FAIL. BETTER LUCK NEXT TIME.\n";
-        
+    {
+        cout << "PERCENTAGE:                N/A (NO QUESTIONS ANSWERED)\n";
+        cout << "RESULT:                    INCOMPLETE\n";
+    }
     cout << "================================\n\n";
 }
