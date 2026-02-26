@@ -1,4 +1,5 @@
 #include "QuizManager.h"
+#include "../UTILS/FileLoader.h"
 #include <iostream>
 #include <cctype>
 #include <algorithm> 
@@ -99,6 +100,8 @@ void QuizManager::start()
 
 // DISPLAY RESULTS IMPLEMENTATION
 // LOGIC: DISPLAYS STATS BASED ON ATTEMPTED QUESTIONS. PREVENTS DIVISION BY ZERO.
+// DISPLAY RESULTS IMPLEMENTATION
+// LOGIC: DISPLAYS STATS BASED ON ATTEMPTED QUESTIONS. PROMPTS FOR NAME AND SAVES SCORE.
 void QuizManager::displayResults() const
 {
     cout << "\n================================\n";
@@ -122,6 +125,17 @@ void QuizManager::displayResults() const
         
         else
             cout << "RESULT:                    FAIL. BETTER LUCK NEXT TIME.\n";
+
+        // PROMPT USER FOR NAME TO RECORD HIGH SCORE
+        cout << "\nENTER YOUR NAME TO SAVE YOUR SCORE: ";
+        string playerName;
+        
+        // CLEAR THE INPUT BUFFER OF ANY LINGERING NEWLINES BEFORE GETLINE
+        cin >> ws; 
+        getline(cin, playerName);
+
+        // CALL STATIC FILE I/O UTILITY TO APPEND SCORE TO FILE
+        FileLoader::saveScore(playerName, score, questionsAttempted);
     }
     
     else
