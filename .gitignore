@@ -13,3 +13,7 @@ QuizMaster.exe
 # OS GENERATED FILES
 .DS_Store
 Thumbs.db
+
+# DATA FILES
+DATA/HighScores.txt
+!DATA/Questions.txt
