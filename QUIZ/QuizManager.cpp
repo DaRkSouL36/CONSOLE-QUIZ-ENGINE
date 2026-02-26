@@ -1,6 +1,8 @@
 #include "QuizManager.h"
 #include <iostream>
 #include <cctype>
+#include <algorithm> 
+#include <random>    
 
 using namespace std;
 
@@ -11,6 +13,15 @@ QuizManager::QuizManager(const vector<Question>& loadedQuestions)
     questions = loadedQuestions;
     score = 0;
     questionsAttempted = 0;
+}
+
+// RANDOMIZE QUESTIONS IMPLEMENTATION
+// LOGIC: GENERATES A RANDOM SEED AND SHUFFLES THE QUESTION ORDER BEFORE THE QUIZ STARTS
+void QuizManager::randomizeQuestions()
+{
+    random_device rd;
+    mt19937 g(rd());
+    shuffle(questions.begin(), questions.end(), g);
 }
 
 // GET USER INPUT IMPLEMENTATION
@@ -30,13 +41,13 @@ char QuizManager::getUserInput()
         if (input == 'A' || input == 'B' || input == 'C' || input == 'D' || input == 'X')
             return input;
         
-        else 
+        else
             cout << "INVALID INPUT. PLEASE ENTER EXACTLY A, B, C, D, OR X.\n";
     }
 }
 
 // START METHOD IMPLEMENTATION
-// LOGIC: LOOPS THROUGH QUESTIONS, CHECKS FOR EARLY EXIT ('X'), AND TRACKS ATTEMPTS
+// LOGIC: SHUFFLES QUESTIONS, LOOPS THROUGH THEM, CHECKS FOR EARLY EXIT ('X'), AND TRACKS ATTEMPTS
 void QuizManager::start()
 {
     // SAFETY CHECK: DO NOT START IF NO QUESTIONS WERE LOADED
@@ -45,6 +56,9 @@ void QuizManager::start()
         cout << "ERROR: NO QUESTIONS LOADED. CANNOT START THE QUIZ.\n";
         return;
     }
+
+    // RANDOMIZE THE QUESTION ORDER SO NO TWO GAMES ARE IDENTICAL
+    randomizeQuestions();
 
     cout << "\n================================\n";
     cout << "   WELCOME TO QUIZ MASTER (C++)   \n";
@@ -108,7 +122,6 @@ void QuizManager::displayResults() const
         
         else
             cout << "RESULT:                    FAIL. BETTER LUCK NEXT TIME.\n";
-        
     }
     
     else
