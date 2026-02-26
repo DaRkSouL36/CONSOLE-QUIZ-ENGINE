@@ -1,11 +1,13 @@
 #include "QuizManager.h"
-#include "../UTILS/FileLoader.h"
+#include "../UTILS/FileLoader.h" 
 #include <iostream>
 #include <cctype>
 #include <algorithm> 
 #include <random>    
+#include <chrono> // IMPORT FOR TIMERS
 
 using namespace std;
+using namespace std::chrono; // MAKES CHRONO CODE CLEANER TO READ
 
 // CONSTRUCTOR IMPLEMENTATION
 // LOGIC: INITIALIZES THE INTERNAL QUESTION LIST, SCORE, AND ATTEMPTS TO 0
@@ -48,7 +50,7 @@ char QuizManager::getUserInput()
 }
 
 // START METHOD IMPLEMENTATION
-// LOGIC: SHUFFLES QUESTIONS, LOOPS THROUGH THEM, CHECKS FOR EARLY EXIT ('X'), AND TRACKS ATTEMPTS
+// LOGIC: SHUFFLES QUESTIONS, IMPLEMENTS CHRONO TIMING, LOGS RECORD HISTORY, AND TRACKS ATTEMPTS
 void QuizManager::start()
 {
     // SAFETY CHECK: DO NOT START IF NO QUESTIONS WERE LOADED
@@ -58,12 +60,12 @@ void QuizManager::start()
         return;
     }
 
-    // RANDOMIZE THE QUESTION ORDER SO NO TWO GAMES ARE IDENTICAL
     randomizeQuestions();
 
     cout << "\n================================\n";
     cout << "   WELCOME TO QUIZ MASTER (C++)   \n";
     cout << "================================\n";
+    cout << "NOTE: YOU HAVE " << TIME_LIMIT_SECONDS << " SECONDS PER QUESTION!\n";
 
     // LOOP THROUGH ALL QUESTIONS USING PRE-INCREMENT FOR EFFICIENCY
     for (size_t i = 0; i < questions.size(); ++i)
@@ -71,37 +73,94 @@ void QuizManager::start()
         cout << "\n--- QUESTION " << (i + 1) << " OF " << questions.size() << " ---";
         questions[i].displayQuestion();
 
+        // START TIMER
+        auto startTime = steady_clock::now();
+        
         char answer = getUserInput();
+
+        // STOP TIMER
+        auto endTime = steady_clock::now();
+        duration<double> timeSpan = duration_cast<duration<double>>(endTime - startTime);
+        double secondsTaken = timeSpan.count();
 
         // CHECK FOR EARLY EXIT COMMAND
         if (answer == 'X')
         {
             cout << "\nEXITING QUIZ EARLY... CALCULATING RESULTS FOR ATTEMPTED QUESTIONS.\n";
-            break; // BREAKS OUT OF THE FOR LOOP
+            break; 
         }
 
-        // IF NOT EXITING, INCREMENT THE ATTEMPT COUNTER
         ++questionsAttempted;
 
-        // EVALUATE THE ANSWER
-        if (questions[i].isCorrect(answer))
+        bool isCorrect = false;
+        bool isTimeout = false;
+
+        // CHECK IF THEY TOOK TOO LONG
+        if (secondsTaken > TIME_LIMIT_SECONDS)
         {
-            cout << "CORRECT!\n";
-            ++score; 
+            cout << "\nTIME'S UP! YOU TOOK " << secondsTaken << " SECONDS. (LIMIT: " << TIME_LIMIT_SECONDS << "s)\n";
+            isTimeout = true;
+            isCorrect = false; // AUTOMATICALLY WRONG
         }
 
         else
-            cout << "WRONG! THE CORRECT ANSWER WAS: " << questions[i].getCorrectAnswer() << "\n";
+        {
+            // EVALUATE THE ANSWER NORMALLY
+            if (questions[i].isCorrect(answer))
+            {
+                cout << "CORRECT! (TIME: " << secondsTaken << "s)\n";
+                isCorrect = true;
+                ++score; 
+            }
+
+            else
+                cout << "WRONG! THE CORRECT ANSWER WAS: " << questions[i].getCorrectAnswer() << "\n";
+        }
+
+        // RECORD THE ATTEMPT IN OUR HISTORY LOG
+        AnswerRecord record = {questions[i], answer, isCorrect, secondsTaken, isTimeout};
+        attemptHistory.push_back(record);
     }
 
     // ONCE THE LOOP FINISHES OR BREAKS, SHOW THE FINAL RESULTS
     displayResults();
 }
 
+// SHOW INCORRECT ANSWERS IMPLEMENTATION
+// LOGIC: ITERATES THROUGH ATTEMPT HISTORY AND ONLY PRINTS OUT FAILED OR TIMED OUT QUESTIONS
+void QuizManager::showIncorrectAnswers() const
+{
+    cout << "\n================================\n";
+    cout << "     YOUR INCORRECT ANSWERS     \n";
+    cout << "================================\n";
+
+    bool foundWrong = false;
+
+    for (size_t i = 0; i < attemptHistory.size(); ++i)
+    {
+        if (!attemptHistory[i].isCorrect)
+        {
+            foundWrong = true;
+            cout << "\n--- QUESTION ---\n";
+            attemptHistory[i].question.displayQuestion();
+            
+            if (attemptHistory[i].wasTimeout)
+                cout << "\n[RESULT]: TIMEOUT (" << attemptHistory[i].timeTaken << "s)\n";
+            
+            else
+                cout << "\n[YOUR ANSWER]: " << attemptHistory[i].userAnswer << "\n";
+            
+            cout << "[CORRECT ANSWER]: " << attemptHistory[i].question.getCorrectAnswer() << "\n";
+            cout << "--------------------------------\n";
+        }
+    }
+
+    if (!foundWrong)
+        cout << "\nYOU DID NOT GET ANY QUESTIONS WRONG! PERFECT RUN!\n";
+}
+
 // DISPLAY RESULTS IMPLEMENTATION
-// LOGIC: DISPLAYS STATS BASED ON ATTEMPTED QUESTIONS. PREVENTS DIVISION BY ZERO.
-// DISPLAY RESULTS IMPLEMENTATION
-// LOGIC: DISPLAYS STATS BASED ON ATTEMPTED QUESTIONS. PROMPTS FOR NAME AND SAVES SCORE.
+// LOGIC: DISPLAYS STATS, ASKS FOR REVIEW OPTION, THEN PROMPTS FOR NAME TO SAVE SCORE.
 void QuizManager::displayResults() const
 {
     cout << "\n================================\n";
@@ -112,29 +171,32 @@ void QuizManager::displayResults() const
     cout << "QUESTIONS ATTEMPTED:       " << questionsAttempted << "\n";
     cout << "CORRECT ANSWERS:           " << score << "\n";
 
-    // PREVENT DIVIDE-BY-ZERO IF THE USER EXITS ON THE VERY FIRST QUESTION
     if (questionsAttempted > 0)
     {
-        // CALCULATE PERCENTAGE BASED ON ATTEMPTED QUESTIONS ONLY
         double percentage = (static_cast<double>(score) / questionsAttempted) * 100;
         cout << "PERCENTAGE:                " << percentage << "%\n";
 
-        // PASS/FAIL THRESHOLD
         if (percentage >= 50.0)
             cout << "RESULT:                    PASS! GREAT JOB!\n";
         
         else
             cout << "RESULT:                    FAIL. BETTER LUCK NEXT TIME.\n";
 
+        // OPTIONAL REVIEW PROMPT
+        char wantReview;
+        cout << "\nWOULD YOU LIKE TO SEE THE QUESTIONS YOU GOT WRONG? (Y/N): ";
+        cin >> wantReview;
+
+        if (toupper(wantReview) == 'Y')
+            showIncorrectAnswers();
+
         // PROMPT USER FOR NAME TO RECORD HIGH SCORE
         cout << "\nENTER YOUR NAME TO SAVE YOUR SCORE: ";
         string playerName;
         
-        // CLEAR THE INPUT BUFFER OF ANY LINGERING NEWLINES BEFORE GETLINE
         cin >> ws; 
         getline(cin, playerName);
 
-        // CALL STATIC FILE I/O UTILITY TO APPEND SCORE TO FILE
         FileLoader::saveScore(playerName, score, questionsAttempted);
     }
     
