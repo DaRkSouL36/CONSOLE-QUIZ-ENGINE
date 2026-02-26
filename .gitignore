@@ -1,0 +1,15 @@
+# COMPILED EXECUTABLES AND OBJECT FILES
+*.exe
+*.out
+*.app
+*.o
+*.obj
+QuizMaster
+QuizMaster.exe
+
+# VS CODE DIRECTORY
+.vscode/
+
+# OS GENERATED FILES
+.DS_Store
+Thumbs.db
