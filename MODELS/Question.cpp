@@ -1,6 +1,8 @@
 #include "Question.h"
 #include <iostream>
 #include <cctype>
+#include <algorithm>
+#include <random>
 
 using namespace std;
 
@@ -51,4 +53,35 @@ string Question::getCategory() const
 string Question::getDifficulty() const 
 {
     return difficulty;
+}
+
+// APPLY 50/50 LIFELINE IMPLEMENTATION
+// LOGIC: IDENTIFIES THE 3 INCORRECT OPTIONS, SHUFFLES THEM, AND MASKS 2 OF THEM
+void Question::apply5050()
+{
+    // CONVERT CHARACTER (E.G., 'C') TO ARRAY INDEX (E.G., 2)
+    int correctIdx = correctAnswer - 'A';
+    vector<int> wrongIndices;
+    
+    // GATHER ALL INDICES THAT ARE NOT THE CORRECT ANSWER
+    for (int i = 0; i < 4; ++i)
+    {
+        if (i != correctIdx)
+            wrongIndices.push_back(i);
+    }
+    
+    // RANDOMIZE THE WRONG INDICES TO ENSURE UNPREDICTABILITY
+    random_device rd;
+    mt19937 g(rd());
+    shuffle(wrongIndices.begin(), wrongIndices.end(), g);
+    
+    // ELIMINATE THE FIRST TWO RANDOMIZED INCORRECT OPTIONS
+    for (int i = 0; i < 2; ++i)
+    {
+        int eliminateIdx = wrongIndices[i];
+        char optionLetter = 'A' + eliminateIdx;
+        
+        // OVERWRITE THE TEXT TO SHOW IT HAS BEEN REMOVED
+        options[eliminateIdx] = string(1, optionLetter) + ") [ELIMINATED]";
+    }
 }

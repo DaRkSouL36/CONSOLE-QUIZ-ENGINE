@@ -4,10 +4,10 @@
 #include <cctype>
 #include <algorithm> 
 #include <random>    
-#include <chrono> // IMPORT FOR TIMERS
+#include <chrono> 
 
 using namespace std;
-using namespace std::chrono; // MAKES CHRONO CODE CLEANER TO READ
+using namespace std::chrono; 
 
 // CONSTRUCTOR IMPLEMENTATION
 // LOGIC: INITIALIZES THE INTERNAL QUESTION LIST, SCORE, ATTEMPTS, AND DYNAMIC TIME LIMIT
@@ -16,7 +16,8 @@ QuizManager::QuizManager(const vector<Question>& loadedQuestions, double timeLim
     questions = loadedQuestions;
     score = 0;
     questionsAttempted = 0;
-    timeLimitSeconds = timeLimit; // NEW: ASSIGN THE DYNAMIC LIMIT
+    timeLimitSeconds = timeLimit; 
+    lifelinesRemaining = 3;
 }
 
 // RANDOMIZE QUESTIONS IMPLEMENTATION
@@ -29,29 +30,47 @@ void QuizManager::randomizeQuestions()
 }
 
 // GET USER INPUT IMPLEMENTATION
-// LOGIC: INFINITE LOOP THAT BREAKS WHEN A VALID CHARACTER (A, B, C, D, OR X) IS ENTERED
-char QuizManager::getUserInput()
+// LOGIC: INFINITE LOOP THAT BREAKS WHEN A VALID CHARACTER (A, B, C, D, OR X) IS ENTERED, DYNAMICALLY ADAPTS THE CONSOLE PROMPT AND VALIDATES 'H' INPUT
+char QuizManager::getUserInput(bool hintUsedThisQuestion)
 {
     char input;
     while (true)
     {
-        cout << "\nENTER YOUR ANSWER (A/B/C/D) OR 'X' TO EXIT: ";
-        cin >> input;
+        cout << "\nENTER YOUR ANSWER (A/B/C/D)";
         
-        // CONVERT TO UPPERCASE IMMEDIATELY FOR EASIER COMPARISON
+        // ONLY SHOW THE HINT OPTION IF THEY HAVEN'T USED IT THIS TURN AND HAVE SOME LEFT
+        if (!hintUsedThisQuestion && lifelinesRemaining > 0)
+            cout << ", 'H' FOR 50/50 (" << lifelinesRemaining << " LEFT)";
+        
+        cout << ", OR 'X' TO EXIT: ";
+        cin >> input;
         input = toupper(input);
 
-        // CHECK IF THE INPUT IS ONE OF THE ALLOWED OPTIONS OR THE EXIT COMMAND
         if (input == 'A' || input == 'B' || input == 'C' || input == 'D' || input == 'X')
             return input;
         
+        else if (input == 'H')
+        {
+            // VALIDATE IF THE HINT COMMAND IS LEGAL IN THIS CURRENT STATE
+            if (hintUsedThisQuestion)
+                cout << "YOU HAVE ALREADY USED A LIFELINE ON THIS QUESTION!\n";
+            
+            else if (lifelinesRemaining <= 0)
+                cout << "YOU HAVE NO LIFELINES REMAINING!\n";
+            
+            else
+                return input; // VALID HINT REQUEST
+            
+        }
+
         else
-            cout << "INVALID INPUT. PLEASE ENTER EXACTLY A, B, C, D, OR X.\n";
+            cout << "INVALID INPUT. PLEASE TRY AGAIN.\n";
+        
     }
 }
 
 // START METHOD IMPLEMENTATION
-// LOGIC: USES THE DYNAMIC TIMELIMITSECONDS FOR EVALUATING TIMEOUTS
+// LOGIC: USES THE DYNAMIC TIMELIMITSECONDS FOR EVALUATING TIMEOUTS, WRAPS INPUT FETCHING IN A WHILE LOOP TO PROCESS HINTS WITHOUT STOPPING THE TIMER
 void QuizManager::start()
 {
     if (questions.empty())
@@ -65,17 +84,42 @@ void QuizManager::start()
     cout << "\n================================\n";
     cout << "   WELCOME TO QUIZ MASTER (C++)   \n";
     cout << "================================\n";
-    cout << "NOTE: YOU HAVE " << timeLimitSeconds << " SECONDS PER QUESTION!\n"; // UPDATED
+    cout << "NOTE: YOU HAVE " << timeLimitSeconds << " SECONDS PER QUESTION!\n";
+    cout << "NOTE: YOU HAVE " << lifelinesRemaining << " 50/50 LIFELINES AVAILABLE.\n"; 
 
     for (size_t i = 0; i < questions.size(); ++i)
     {
         cout << "\n--- QUESTION " << (i + 1) << " OF " << questions.size() << " ---";
         questions[i].displayQuestion();
 
-        auto startTime = steady_clock::now();
-        char answer = getUserInput();
-        auto endTime = steady_clock::now();
+        bool hintUsedThisQuestion = false;
+        char answer;
         
+        // START TIMER - NOTE THAT IT CONTINUES RUNNING EVEN IF THEY PAUSE TO ASK FOR A HINT
+        auto startTime = steady_clock::now();
+        
+        while (true)
+        {
+            answer = getUserInput(hintUsedThisQuestion);
+
+            // INTERCEPT THE HINT COMMAND
+            if (answer == 'H')
+            {
+                --lifelinesRemaining;
+                hintUsedThisQuestion = true;
+                
+                cout << "\n>>> 50/50 LIFELINE ACTIVATED! (" << lifelinesRemaining << " REMAINING) <<<\n";
+                questions[i].apply5050();
+                questions[i].displayQuestion();
+                // LOOP REPEATS TO ASK FOR THE ACTUAL ANSWER NOW
+            }
+
+            else
+                break; // IT IS A STANDARD ANSWER OR 'X', BREAK THE INPUT LOOP            
+        }
+
+        // STOP TIMER
+        auto endTime = steady_clock::now();
         duration<double> timeSpan = duration_cast<duration<double>>(endTime - startTime);
         double secondsTaken = timeSpan.count();
 
@@ -86,11 +130,9 @@ void QuizManager::start()
         }
 
         ++questionsAttempted;
-
         bool isCorrect = false;
         bool isTimeout = false;
 
-        // CHECK IF THEY TOOK TOO LONG USING THE DYNAMIC LIMIT
         if (secondsTaken > timeLimitSeconds)
         {
             cout << "\nTIME'S UP! YOU TOOK " << secondsTaken << " SECONDS. (LIMIT: " << timeLimitSeconds << "s)\n";
@@ -106,11 +148,10 @@ void QuizManager::start()
                 isCorrect = true;
                 ++score; 
             }
-            
+
             else
-            {
                 cout << "WRONG! THE CORRECT ANSWER WAS: " << questions[i].getCorrectAnswer() << "\n";
-            }
+            
         }
 
         AnswerRecord record = {questions[i], answer, isCorrect, secondsTaken, isTimeout};
