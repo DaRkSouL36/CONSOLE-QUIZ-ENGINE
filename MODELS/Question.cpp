@@ -4,7 +4,14 @@
 
 using namespace std;
 
-// CONSTRUCTOR IMPLEMENTATION
+// DEFAULT CONSTRUCTOR IMPLEMENTATION
+// LOGIC: INITIALIZES WITH SAFE FALLBACK VALUES SO STD::VECTOR CAN ALLOCATE MEMORY SAFELY
+Question::Question()
+    : category("UNKNOWN"), difficulty("UNKNOWN"), questionText("EMPTY QUESTION"), correctAnswer('A') 
+{
+}
+
+// PARAMETERIZED CONSTRUCTOR IMPLEMENTATION
 // LOGIC: INITIALIZES ALL MEMBER VARIABLES, INCLUDING NEW CATEGORY AND DIFFICULTY STRINGS
 Question::Question(const string& cat, const string& diff, const string& text, const vector<string>& opts, char answer)
     : category(cat), difficulty(diff), questionText(text), options(opts), correctAnswer(toupper(answer)) 
