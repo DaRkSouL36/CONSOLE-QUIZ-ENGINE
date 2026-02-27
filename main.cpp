@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cctype> // IMPORT FOR TOUPPER
 #include "MODELS/Question.h"
 #include "UTILS/FileLoader.h"
 #include "QUIZ/QuizManager.h"
@@ -8,20 +9,17 @@
 using namespace std;
 
 // PURPOSE: MAIN ENTRY POINT FOR THE QUIZ MASTER APPLICATION
-// INPUT: COMMAND LINE ARGUMENTS (NOT USED IN THIS BASIC VERSION)
+// INPUT: COMMAND LINE ARGUMENTS
 // OUTPUT: INTEGER EXIT STATUS (0 FOR SUCCESS)
-// LOGIC: DEFINES FILE PATH, LOADS QUESTIONS, INITIALIZES MANAGER, AND STARTS THE QUIZ
+// LOGIC: LOADS QUESTIONS ONCE, THEN ENTERS A DO-WHILE LOOP ALLOWING THE USER TO REPLAY
 int main()
 {
-    // DEFINE THE RELATIVE PATH TO THE QUESTIONS TEXT FILE
     const string filePath = "DATA/Questions.txt";
 
     cout << "LOADING QUESTIONS FROM: " << filePath << "...\n";
 
-    // LOAD THE QUESTIONS USING OUR STATIC UTILITY METHOD
     vector<Question> loadedQuestions = FileLoader::loadQuestions(filePath);
 
-    // IF NO QUESTIONS WERE LOADED (FILE MISSING OR EMPTY), EXIT GRACEFULLY
     if (loadedQuestions.empty())
     {
         cout << "CRITICAL ERROR: FAILED TO LOAD QUESTIONS. EXITING PROGRAM.\n";
@@ -30,12 +28,23 @@ int main()
 
     cout << "SUCCESSFULLY LOADED " << loadedQuestions.size() << " QUESTIONS.\n";
 
-    // INSTANTIATE THE QUIZ MANAGER WITH THE LOADED QUESTIONS
-    QuizManager quiz(loadedQuestions);
+    char playAgain;
+    
+    // MASTER GAME LOOP
+    do
+    {
+        // INSTANTIATE A FRESH MANAGER EACH TIME SO SCORES/HISTORY ARE RESET
+        QuizManager quiz(loadedQuestions);
+        quiz.start();
 
-    // START THE MAIN GAME LOOP
-    quiz.start();
+        // PROMPT USER TO PLAY AGAIN
+        cout << "WOULD YOU LIKE TO PLAY AGAIN? (Y/N): ";
+        cin >> playAgain;
+        playAgain = toupper(playAgain);
 
-    // RETURN 0 TO INDICATE SUCCESSFUL EXECUTION
+    } while (playAgain == 'Y');
+
+    cout << "\nTHANK YOU FOR PLAYING QUIZ MASTER. GOODBYE!\n";
+
     return 0;
 }

@@ -2,6 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <ctime>  
+#include <iomanip>
 
 using namespace std;
 
@@ -12,6 +14,8 @@ struct ScoreRecord
     string name;
     int score;
     int attempted;
+    double percentage;
+    string date;
 };
 
 // LOAD QUESTIONS IMPLEMENTATION
@@ -69,17 +73,28 @@ vector<Question> FileLoader::loadQuestions(const string& filePath)
 }
 
 // SAVE SCORE IMPLEMENTATION
-// LOGIC: USES STD::OFSTREAM IN APPEND MODE TO ADD A NEW RECORD TO THE FILE
+// LOGIC: USES STD::OFSTREAM IN APPEND MODE TO ADD A NEW RECORD TO THE FILE; USES CTIME TO GET SYSTEM TIME, FORMATS IT, AND APPENDS IT WITH THE SCORE
 void FileLoader::saveScore(const string& playerName, int score, int attempted)
 {
-    // OPEN THE FILE IN APPEND MODE
+    // GET CURRENT SYSTEM TIME
+    time_t now = time(0);
+    tm* ltm = localtime(&now);
+    
+    // FORMAT THE TIME INTO A STRING BUFFER
+    char dateBuffer[30];
+    strftime(dateBuffer, sizeof(dateBuffer), "%Y-%m-%d %H:%M:%S", ltm);
+
     ofstream file("DATA/HighScores.txt", ios::app);
 
     if (file.is_open())
     {
-        file << "PLAYER: " << playerName << " | SCORE: " << score << "/" << attempted << "\n";
+        // APPEND SCORE WITH THE NEW DATE DELIMITER
+        file << "PLAYER: " << playerName 
+             << " | SCORE: " << score << "/" << attempted 
+             << " | DATE: " << dateBuffer << "\n";
+            
         file.close();
-        cout << "HIGH SCORE SAVED SUCCESSFULLY TO DATA/HighScores.txt!\n";
+        cout << "HIGH SCORE SAVED SUCCESSFULLY!\n";
     }
 
     else
@@ -87,35 +102,40 @@ void FileLoader::saveScore(const string& playerName, int score, int attempted)
 }
 
 // DISPLAY TOP HIGH SCORES IMPLEMENTATION
-// LOGIC: PARSES THE TEXT FILE, EXTRACTS SUBSTRINGS, CONVERTS TO INTEGERS, SORTS, AND PRINTS TOP 5
+// LOGIC: EXTRACTS SUBSTRINGS, CALCULATES PERCENTAGE, SORTS BY PERCENTAGE DESCENDING, AND FORMATS OUTPUT
 void FileLoader::displayTopHighScores()
 {
     ifstream file("DATA/HighScores.txt");
     vector<ScoreRecord> records;
 
-    // IF FILE DOESN'T EXIST YET, JUST RETURN GRACEFULLY
     if (!file.is_open())
-    {
         return; 
-    }
 
     string line;
     
-    // READ THE FILE LINE BY LINE
     while (getline(file, line))
     {
-        // EXPECTED FORMAT: "PLAYER: [NAME] | SCORE: [SCORE]/[ATTEMPTED]"
         size_t playerPos = line.find("PLAYER: ");
         size_t separatorPos = line.find(" | SCORE: ");
         size_t slashPos = line.find("/");
+        size_t datePos = line.find(" | DATE: "); // NEW DELIMITER SEARCH
 
-        // ENSURE ALL EXPECTED DELIMITERS EXIST TO PREVENT PARSING ERRORS
         if (playerPos != string::npos && separatorPos != string::npos && slashPos != string::npos)
         {
-            // EXTRACT THE SUBSTRINGS BASED ON DELIMITER POSITIONS
             string name = line.substr(playerPos + 8, separatorPos - (playerPos + 8));
             string scoreStr = line.substr(separatorPos + 10, slashPos - (separatorPos + 10));
-            string attemptStr = line.substr(slashPos + 1);
+            string attemptStr;
+            string dateStr = "N/A"; // FALLBACK IF READING AN OLDER SAVE FILE WITHOUT A DATE
+
+            // CHECK IF DATE EXISTS TO SUPPORT BACKWARDS COMPATIBILITY
+            if (datePos != string::npos)
+            {
+                attemptStr = line.substr(slashPos + 1, datePos - (slashPos + 1));
+                dateStr = line.substr(datePos + 9); 
+            }
+
+            else
+                attemptStr = line.substr(slashPos + 1);
 
             try 
             {
@@ -123,26 +143,30 @@ void FileLoader::displayTopHighScores()
                 sr.name = name;
                 sr.score = stoi(scoreStr);
                 sr.attempted = stoi(attemptStr);
+                sr.date = dateStr;
+                
+                // CALCULATE PERCENTAGE TO ALLOW FAIR SORTING
+                sr.percentage = (sr.attempted > 0) ? (static_cast<double>(sr.score) / sr.attempted) * 100.0 : 0.0;
+                
                 records.push_back(sr);
             }
+
             catch (...) 
             {
-                // SILENTLY CATCH ANY STOI (STRING TO INTEGER) CONVERSION ERRORS IF FILE WAS CORRUPTED
                 continue; 
             }
         }
     }
+
     file.close();
 
-    // SORT THE RECORDS USING A CUSTOM LAMBDA FUNCTION
-    // LOGIC: SORT DESCENDING BY SCORE. IF SCORES ARE EQUAL, SORT ASCENDING BY ATTEMPTS (EFFICIENCY).
+    // SORT THE RECORDS USING A CUSTOM LAMBDA FUNCTION (BY PERCENTAGE FIRST, THEN TOTAL SCORE)
     sort(records.begin(), records.end(), [](const ScoreRecord& a, const ScoreRecord& b) 
     {
-        if (a.score == b.score)
-        {
-            return a.attempted < b.attempted;
-        }
-        return a.score > b.score;
+        if (a.percentage == b.percentage)
+            return a.score > b.score; // TIE BREAKER: RAW SCORE
+        
+        return a.percentage > b.percentage;
     });
 
     // DISPLAY THE LEADERBOARD
@@ -151,16 +175,16 @@ void FileLoader::displayTopHighScores()
     cout << "================================\n";
 
     if (records.empty())
-    {
         cout << "NO SCORES RECORDED YET.\n";
-    }
+    
     else
     {
-        // PRINT ONLY UP TO THE FIRST 5 RECORDS
         for (size_t i = 0; i < records.size() && i < 5; ++i)
         {
-            cout << (i + 1) << ". " << records[i].name << " - " 
-                 << records[i].score << "/" << records[i].attempted << "\n";
+            cout << (i + 1) << ". " << records[i].name 
+                 << " - " << fixed << setprecision(1) << records[i].percentage << "% "
+                 << "(" << records[i].score << "/" << records[i].attempted << ") "
+                 << "[" << records[i].date << "]\n";
         }
     }
     cout << "================================\n\n";
