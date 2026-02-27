@@ -10,12 +10,13 @@ using namespace std;
 using namespace std::chrono; // MAKES CHRONO CODE CLEANER TO READ
 
 // CONSTRUCTOR IMPLEMENTATION
-// LOGIC: INITIALIZES THE INTERNAL QUESTION LIST, SCORE, AND ATTEMPTS TO 0
-QuizManager::QuizManager(const vector<Question>& loadedQuestions)
+// LOGIC: INITIALIZES THE INTERNAL QUESTION LIST, SCORE, ATTEMPTS, AND DYNAMIC TIME LIMIT
+QuizManager::QuizManager(const vector<Question>& loadedQuestions, double timeLimit)
 {
     questions = loadedQuestions;
     score = 0;
     questionsAttempted = 0;
+    timeLimitSeconds = timeLimit; // NEW: ASSIGN THE DYNAMIC LIMIT
 }
 
 // RANDOMIZE QUESTIONS IMPLEMENTATION
@@ -50,10 +51,9 @@ char QuizManager::getUserInput()
 }
 
 // START METHOD IMPLEMENTATION
-// LOGIC: SHUFFLES QUESTIONS, IMPLEMENTS CHRONO TIMING, LOGS RECORD HISTORY, AND TRACKS ATTEMPTS
+// LOGIC: USES THE DYNAMIC TIMELIMITSECONDS FOR EVALUATING TIMEOUTS
 void QuizManager::start()
 {
-    // SAFETY CHECK: DO NOT START IF NO QUESTIONS WERE LOADED
     if (questions.empty())
     {
         cout << "ERROR: NO QUESTIONS LOADED. CANNOT START THE QUIZ.\n";
@@ -65,25 +65,20 @@ void QuizManager::start()
     cout << "\n================================\n";
     cout << "   WELCOME TO QUIZ MASTER (C++)   \n";
     cout << "================================\n";
-    cout << "NOTE: YOU HAVE " << TIME_LIMIT_SECONDS << " SECONDS PER QUESTION!\n";
+    cout << "NOTE: YOU HAVE " << timeLimitSeconds << " SECONDS PER QUESTION!\n"; // UPDATED
 
-    // LOOP THROUGH ALL QUESTIONS USING PRE-INCREMENT FOR EFFICIENCY
     for (size_t i = 0; i < questions.size(); ++i)
     {
         cout << "\n--- QUESTION " << (i + 1) << " OF " << questions.size() << " ---";
         questions[i].displayQuestion();
 
-        // START TIMER
         auto startTime = steady_clock::now();
-        
         char answer = getUserInput();
-
-        // STOP TIMER
         auto endTime = steady_clock::now();
+        
         duration<double> timeSpan = duration_cast<duration<double>>(endTime - startTime);
         double secondsTaken = timeSpan.count();
 
-        // CHECK FOR EARLY EXIT COMMAND
         if (answer == 'X')
         {
             cout << "\nEXITING QUIZ EARLY... CALCULATING RESULTS FOR ATTEMPTED QUESTIONS.\n";
@@ -95,34 +90,33 @@ void QuizManager::start()
         bool isCorrect = false;
         bool isTimeout = false;
 
-        // CHECK IF THEY TOOK TOO LONG
-        if (secondsTaken > TIME_LIMIT_SECONDS)
+        // CHECK IF THEY TOOK TOO LONG USING THE DYNAMIC LIMIT
+        if (secondsTaken > timeLimitSeconds)
         {
-            cout << "\nTIME'S UP! YOU TOOK " << secondsTaken << " SECONDS. (LIMIT: " << TIME_LIMIT_SECONDS << "s)\n";
+            cout << "\nTIME'S UP! YOU TOOK " << secondsTaken << " SECONDS. (LIMIT: " << timeLimitSeconds << "s)\n";
             isTimeout = true;
-            isCorrect = false; // AUTOMATICALLY WRONG
+            isCorrect = false; 
         }
 
         else
         {
-            // EVALUATE THE ANSWER NORMALLY
             if (questions[i].isCorrect(answer))
             {
                 cout << "CORRECT! (TIME: " << secondsTaken << "s)\n";
                 isCorrect = true;
                 ++score; 
             }
-
+            
             else
+            {
                 cout << "WRONG! THE CORRECT ANSWER WAS: " << questions[i].getCorrectAnswer() << "\n";
+            }
         }
 
-        // RECORD THE ATTEMPT IN OUR HISTORY LOG
         AnswerRecord record = {questions[i], answer, isCorrect, secondsTaken, isTimeout};
         attemptHistory.push_back(record);
     }
 
-    // ONCE THE LOOP FINISHES OR BREAKS, SHOW THE FINAL RESULTS
     displayResults();
 }
 
