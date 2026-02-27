@@ -5,33 +5,43 @@
 using namespace std;
 
 // CONSTRUCTOR IMPLEMENTATION
-// INITIALIZES THE MEMBER VARIABLES WITH THE PROVIDED ARGUMENTS
-// CONVERTS THE CORRECT ANSWER TO UPPERCASE IMMEDIATELY TO ENSURE INTERNAL CONSISTENCY
-Question::Question(const string& text, const vector<string>& opts, char answer)
-    : questionText(text), options(opts), correctAnswer(toupper(answer)) {
+// LOGIC: INITIALIZES ALL MEMBER VARIABLES, INCLUDING NEW CATEGORY AND DIFFICULTY STRINGS
+Question::Question(const string& cat, const string& diff, const string& text, const vector<string>& opts, char answer)
+    : category(cat), difficulty(diff), questionText(text), options(opts), correctAnswer(toupper(answer)) 
+{
 }
 
 // DISPLAY QUESTION IMPLEMENTATION
-// LOGIC: PRINTS THE QUESTION TEXT, THEN LOOPS THROUGH THE VECTOR TO PRINT OPTIONS A, B, C, AND D
+// LOGIC: PRINTS CATEGORY AND DIFFICULTY BADGES, THEN THE QUESTION TEXT AND OPTIONS
 void Question::displayQuestion() const 
 {
-    cout << "\n" << questionText << "\n";
+    cout << "\n[" << category << "] | [" << difficulty << "]\n";
+    cout << questionText << "\n";
     
-    // ITERATE THROUGH THE OPTIONS AND PRINT THEM
     for (const string& option : options) 
         cout << option << "\n";
 }
 
 // CHECK ANSWER IMPLEMENTATION
-// LOGIC: CONVERTS PASSED USER INPUT TO UPPERCASE USING TOUPPER BEFORE COMPARING
 bool Question::isCorrect(char userAnswer) const 
 {
     return toupper(userAnswer) == correctAnswer;
 }
 
-// GETTER IMPLEMENTATION
-// SIMPLY RETURNS THE STORED CORRECT ANSWER
+// GETTER FOR CORRECT ANSWER
 char Question::getCorrectAnswer() const 
 {
     return correctAnswer;
+}
+
+// GETTER FOR CATEGORY
+string Question::getCategory() const 
+{
+    return category;
+}
+
+// GETTER FOR DIFFICULTY
+string Question::getDifficulty() const 
+{
+    return difficulty;
 }

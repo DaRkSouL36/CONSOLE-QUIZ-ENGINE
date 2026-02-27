@@ -19,52 +19,56 @@ struct ScoreRecord
 };
 
 // LOAD QUESTIONS IMPLEMENTATION
-// LOGIC: USES STD::IFSTREAM TO OPEN THE FILE. READS CHUNKS OF 6 LINES AT A TIME.
-//        SKIPS BLANK LINES. SECURELY GRABS THE LAST CHARACTER OF THE ANSWER LINE.
+// LOGIC: READS CHUNKS OF 8 LINES AT A TIME TO ACCOMMODATE CATEGORY AND DIFFICULTY.
+// SKIPS BLANK LINES. SECURELY GRABS THE LAST CHARACTER OF THE ANSWER LINE.
 vector<Question> FileLoader::loadQuestions(const string& filePath)
 {
     vector<Question> questions;
     ifstream file(filePath);
 
-    // CHECK IF THE FILE OPENED SUCCESSFULLY
     if (!file.is_open())
     {
         cerr << "ERROR: COULD NOT OPEN FILE AT " << filePath << "\n";
-        return questions; // RETURNS AN EMPTY VECTOR TO PREVENT CRASHES
+        return questions; 
     }
 
     string line;
     
-    // READ UNTIL THE END OF THE FILE
     while (getline(file, line))
     {
-        // SKIP EMPTY LINES THAT ACT AS SEPARATORS BETWEEN QUESTION BLOCKS
         if (line.empty())
             continue;
 
-        // IF THE LINE IS NOT EMPTY, IT MUST BE THE START OF A NEW QUESTION.
-        // STORE THE QUESTION TEXT.
-        string questionText = line;
+        // 1. EXTRACT CATEGORY (EXPECTING "CATEGORY: [VALUE]")
+        string category = "GENERAL";
+        if (line.find("CATEGORY: ") != string::npos)
+            category = line.substr(10); // EXTRACT EVERYTHING AFTER "CATEGORY: "
+
+        // 2. EXTRACT DIFFICULTY (EXPECTING "DIFFICULTY: [VALUE]")
+        string difficulty = "MEDIUM";
+        if (getline(file, line) && line.find("DIFFICULTY: ") != string::npos)
+            difficulty = line.substr(12); // EXTRACT EVERYTHING AFTER "DIFFICULTY: "
+
+        // 3. EXTRACT QUESTION TEXT
+        string questionText = "";
+        if (getline(file, line))
+            questionText = line;
+
+        // 4. EXTRACT 4 OPTIONS
         vector<string> options;
-        
-        // READ THE NEXT 4 LINES FOR THE OPTIONS (A, B, C, D)
         for (int i = 0; i < 4; ++i)
         {
             if (getline(file, line))
                 options.push_back(line);
         }
 
-        // READ THE ANSWER LINE (E.G., "ANSWER: A")
-        char correctAnswer = 'A'; // DEFAULT FALLBACK IN CASE OF PARSING ERROR
-        if (getline(file, line))
-        {
-            // EXTRACT THE VERY LAST CHARACTER OF THE LINE (WHICH SHOULD BE A, B, C, OR D)
-            if (!line.empty())
-                correctAnswer = line.back(); 
-        }
+        // 5. EXTRACT ANSWER
+        char correctAnswer = 'A'; 
+        if (getline(file, line) && !line.empty())
+            correctAnswer = line.back(); 
 
-        // INSTANTIATE A NEW QUESTION OBJECT AND ADD IT TO OUR COLLECTION
-        Question q(questionText, options, correctAnswer);
+        // INSTANTIATE AND ADD THE QUESTION
+        Question q(category, difficulty, questionText, options, correctAnswer);
         questions.push_back(q);
     }
 
