@@ -197,7 +197,11 @@ void QuizManager::displayResults() const
         cin >> ws; 
         getline(cin, playerName);
 
+        // SAVE THE SCORE
         FileLoader::saveScore(playerName, score, questionsAttempted);
+
+        // NEW: DISPLAY THE LEADERBOARD AFTER SAVING
+        FileLoader::displayTopHighScores();
     }
     
     else
